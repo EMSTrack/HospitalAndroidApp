@@ -2,8 +2,10 @@ package org.emstrack.hospital;
 
 import java.util.ArrayList;
 
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v7.app.ActionBar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -22,6 +24,7 @@ import org.emstrack.hospital.adapters.ListAdapter;
 import org.emstrack.hospital.dialogs.LogoutDialog;
 import org.emstrack.hospital.interfaces.DataListener;
 
+import org.emstrack.models.HospitalEquipmentMetadata;
 import org.emstrack.mqtt.MqttProfileClient;
 import org.emstrack.mqtt.MqttProfileMessageCallback;
 
@@ -80,8 +83,9 @@ public class HospitalEquipmentActivity extends AppCompatActivity {
             public void onDataChanged(String equipmentName, String data) {
 
                 Log.d(TAG, "onDataChanged: " + equipmentName + "@" + data);
-                String format = "{\"hospital_id\":%1$s,\"equipment_name\":\"%2$s\",\"value\":%3$s}";
+                String format = "{\"value\":\"%3$s\"}";
 
+                // Publish new value to mqtt broker
                 try {
                     profileClient.publish("user/" + profileClient.getUsername() +
                             "/hospital/" + hospitalId +
@@ -91,10 +95,40 @@ public class HospitalEquipmentActivity extends AppCompatActivity {
                 } catch (MqttException e) {
                     Log.d(TAG, "Failed to publish updated equipment");
                 }
+
             }
 
         });
         lv.setAdapter(adapter);
+
+        try {
+
+            // Catch errors
+            profileClient.subscribe("user/" + profileClient.getUsername() + "/error",
+                    1, new MqttProfileMessageCallback() {
+
+                        @Override
+                        public void messageArrived(String topic, MqttMessage message) {
+
+                            AlertDialog alertDialog = new AlertDialog.Builder(HospitalEquipmentActivity.this).create();
+                            alertDialog.setTitle(getResources().getString(R.string.alert_error_title));
+                            alertDialog.setMessage(new String(message.getPayload()));
+                            alertDialog.setButton(AlertDialog.BUTTON_POSITIVE,
+                                    getResources().getString(R.string.alert_button_positive_text),
+                                    new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            dialog.dismiss();
+                                        }
+                                    });
+                            alertDialog.show();
+
+                        }
+
+                    });
+
+        } catch (MqttException e) {
+            Log.d(TAG, "Could not subscribe to error topic");
+        }
 
         try {
 
@@ -122,6 +156,7 @@ public class HospitalEquipmentActivity extends AppCompatActivity {
                     Gson gson = gsonBuilder.create();
 
                     try {
+
                         // Subscribe to all hospital equipment topics
                         profileClient.subscribe(
                                 "hospital/" + hospitalId + "/equipment/+/data",
@@ -146,22 +181,11 @@ public class HospitalEquipmentActivity extends AppCompatActivity {
                             }
                         });
 
-                        /*
-
-                        // NOT NECESSARY: Already subscribed to all equipment topics
+                        // Retrieve metadata
 
                         HospitalEquipmentMetadata[] equipmentMetadata = gson
                                 .fromJson(new String(message.getPayload()),
                                         HospitalEquipmentMetadata[].class);
-                        for (HospitalEquipmentMetadata equipment : equipmentMetadata) {
-                            // Subscribe without a callback
-                            profileClient.subscribe(
-                                    "hospital/" + hospitalId +
-                                            "/equipment/" + equipment.getName() + "/data",
-                                    1, null);
-                        }
-
-                        */
 
                     } catch (MqttException e) {
                         Log.d(TAG, "Could not subscribe to hospital equipment topics");
@@ -179,10 +203,11 @@ public class HospitalEquipmentActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
 
-        try {
+        // Retrieve client
+        final MqttProfileClient profileClient = ((HospitalApp) getApplication()).getProfileClient();
 
-            // Retrieve client
-            final MqttProfileClient profileClient = ((HospitalApp) getApplication()).getProfileClient();
+
+        try {
 
             // unsubscribe to current hospital equipment data
             profileClient.unsubscribe("hospital/" + hospitalId + "/equipment/+/data");
@@ -190,6 +215,17 @@ public class HospitalEquipmentActivity extends AppCompatActivity {
         } catch ( MqttException exception ) {
 
             Log.d(TAG,"Could not unsubscribe to 'hospital/" + hospitalId + "/equipment/+/data'");
+
+        }
+
+        try {
+
+            // unsubscribe to error
+            profileClient.unsubscribe("user/" + profileClient.getUsername() + "/error");
+
+        } catch ( MqttException exception ) {
+
+            Log.d(TAG,"Could not unsubscribe to 'user/" + profileClient.getUsername() + "/error'");
 
         }
 

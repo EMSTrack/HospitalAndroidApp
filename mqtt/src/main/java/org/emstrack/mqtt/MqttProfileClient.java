@@ -84,12 +84,28 @@ public class MqttProfileClient implements MqttCallbackExtended {
     }
 
     public void disconnect() throws MqttException {
-        mqttClient.disconnect();
-        subscribedTopics = new HashMap<>();
+        if (isConnected()) {
+
+            try {
+
+                // Publish 'offline' to user/{username}/client/{client-id}/status
+                publish("user/" + username + "/client/" + mqttClient.getClientId() + "/status", "offline", 2, true);
+
+            } catch (MqttException exception) {
+
+                callOnFailure(new Exception("Failed to publish to 'user/" + username + "/client/" + mqttClient.getClientId() + "/status'"));
+                return;
+
+            }
+
+            mqttClient.disconnect();
+            subscribedTopics = new HashMap<>();
+
+        }
     }
 
     public boolean isConnected() {
-        return mqttClient.isConnected();
+        return (mqttClient != null && mqttClient.isConnected());
     }
 
     public void setCallback(MqttProfileCallback callback) {
@@ -170,10 +186,8 @@ public class MqttProfileClient implements MqttCallbackExtended {
     public void connect(final String username, final String password,
                         final MqttProfileCallback connectCallback) throws MqttException {
 
-        // if connected, disconnect first
-        if (isConnected()) {
-            disconnect();
-        }
+        // disconnect first
+        disconnect();
 
         // set new username
         setUsername(username);
@@ -187,6 +201,7 @@ public class MqttProfileClient implements MqttCallbackExtended {
         mqttConnectOptions.setCleanSession(false);
         mqttConnectOptions.setUserName(username);
         mqttConnectOptions.setPassword(password.toCharArray());
+        mqttConnectOptions.setWill("user/" + username + "/client/" + mqttClient.getClientId() + "/status", "disconnected".getBytes(), 2, true);
 
         mqttClient.connect(mqttConnectOptions,
                 null,
@@ -228,6 +243,18 @@ public class MqttProfileClient implements MqttCallbackExtended {
             Log.d(TAG, "Reconnected to broker");
         else
             Log.d(TAG, "Connected to broker");
+
+        try {
+
+            // Publish 'online' to user/{username}/client/{client-id}/status
+            publish("user/" + username + "/client/" + mqttClient.getClientId() + "/status", "online", 2, true);
+
+        } catch (MqttException exception) {
+
+            callOnFailure(new Exception("Failed to publish to 'user/" + username + "/client/" + mqttClient.getClientId() + "/status'"));
+            return;
+
+        }
 
         try {
 
