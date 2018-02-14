@@ -58,99 +58,93 @@ public class ListAdapter extends ArrayAdapter<HospitalEquipment> {
 
         final Character equipmentEtype = equipmentItem.getEquipmentEtype();
 
-        try {
+        // Integer type
+        if (equipmentEtype == 'I' || equipmentEtype == 'S') {
 
-            // Integer type
-            if (equipmentEtype == 'I' || equipmentEtype == 'S') {
+            System.out.println("Adding Value to List");
+            row = inflater.inflate(R.layout.list_item_value, parent, false);
 
-                System.out.println("Adding Value to List");
-                row = inflater.inflate(R.layout.list_item_value, parent, false);
+            // Grab the elements of the Value ListItem
+            System.out.println("Grabbing Elements from Row");
+            TextView text = row.findViewById(R.id.valueTextView);
+            TextView value = row.findViewById(R.id.valueData);
 
-                // Grab the elements of the Value ListItem
-                System.out.println("Grabbing Elements from Row");
-                TextView text = row.findViewById(R.id.valueTextView);
-                TextView value = row.findViewById(R.id.valueData);
+            // Set the elements of the ListItem
+            System.out.println("Setting Elements in Row");
+            text.setText(equipmentItem.getEquipmentName());
+            if (equipmentEtype == 'I')
+                value.setText(equipmentItem.getValue());
+            else
+                value.setText("...");
+            // Store value in a tag
+            row.setTag(equipmentItem);
 
-                // Set the elements of the ListItem
-                System.out.println("Setting Elements in Row");
-                text.setText(equipmentItem.getEquipmentName());
-                if (equipmentEtype == 'I')
-                    value.setText(equipmentItem.getValue());
-                else
-                    value.setText("...");
-                // Store value in a tag
-                row.setTag(equipmentItem.getValue());
+            System.out.println("Setting row onClick Listener");
+            row.setOnClickListener(new View.OnClickListener() {
 
-                System.out.println("Setting row onClick Listener");
-                row.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
 
-                    @Override
-                    public void onClick(View v) {
+                    String title = ((TextView) row.findViewById(R.id.valueTextView)).getText().toString();
+                    String value = ((HospitalEquipment) v.getTag()).getValue();
+                    Character equipmentEtype =
+                            ((TextView) row.findViewById(R.id.valueData)).getText()
+                                    .equals("...") ? 'S' : 'I';
+                    String message;
+                    if (equipmentEtype == 'I')
+                        message = context.getResources().getString(R.string.equipment_integer_message);
+                    else
+                        message = context.getResources().getString(R.string.equipment_string_message);
 
-                        String title = ((TextView) row.findViewById(R.id.valueTextView)).getText().toString();
-                        String value = v.getTag().toString();
-                        Character equipmentType =
-                                ((TextView) row.findViewById(R.id.valueData)).getText()
-                                        .equals("...") ? 'S' : 'I';
-                        String message;
-                        if (equipmentEtype == 'I')
-                            message = context.getResources().getString(R.string.equipment_integer_message);
-                        else
-                            message = context.getResources().getString(R.string.equipment_string_message);
+                    EquipmentValueDialog vd = EquipmentValueDialog.newInstance(title, message, value);
+                    vd.setOnDataChangedListener(dr);
+                    vd.show(fragmentManager,
+                            "integer_dialog");
 
-                        EquipmentValueDialog vd = EquipmentValueDialog.newInstance(title, message, value);
-                        vd.setOnDataChangedListener(dr);
-                        vd.show(fragmentManager,
-                                "integer_dialog");
-                    }
-
-                });
-
-            } else if (equipmentEtype == 'B') {
-
-                System.out.println("Adding Toggle to List");
-                row = inflater.inflate(R.layout.list_item_boolean, parent, false);
-
-                // Grab the elements of the Toggle ListItem
-                TextView text = row.findViewById(R.id.toggleTextView);
-                ImageView image = row.findViewById(R.id.toggleImage);
-
-                // Set the elements of the ListItem
-                text.setText(equipmentItem.getEquipmentName());
-                row.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-
-                        String title = ((TextView) row.findViewById(R.id.toggleTextView)).getText().toString();
-                        String message = context.getResources().getString(R.string.equipment_boolean_message);
-                        String value = equipmentItem.getValue();
-                        boolean toggled = (value.equals("True"));
-
-                        EquipmentBooleanDialog td = EquipmentBooleanDialog.newInstance(title, message, toggled, value);
-                        td.setOnDataChangedListener(dr);
-
-                        td.show(fragmentManager,
-                                "boolean_dialog");
-                    }
-                });
-
-                // Check which image to set
-                if (equipmentItem.getValue().equals("True")) {
-                    image.setImageResource(R.drawable.green_check);
-                } else {
-                    image.setImageResource(R.drawable.redx);
                 }
 
+            });
+
+        } else if (equipmentEtype == 'B') {
+
+            System.out.println("Adding Toggle to List");
+            row = inflater.inflate(R.layout.list_item_boolean, parent, false);
+
+            // Grab the elements of the Toggle ListItem
+            TextView text = row.findViewById(R.id.toggleTextView);
+            ImageView image = row.findViewById(R.id.toggleImage);
+
+            // Set the elements of the ListItem
+            text.setText(equipmentItem.getEquipmentName());
+            row.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+
+                    String title = ((TextView) row.findViewById(R.id.toggleTextView)).getText().toString();
+                    String message = context.getResources().getString(R.string.equipment_boolean_message);
+                    String value = equipmentItem.getValue();
+                    boolean toggled = (value.equals("True"));
+
+                    EquipmentBooleanDialog td = EquipmentBooleanDialog.newInstance(title, message, toggled, value);
+                    td.setOnDataChangedListener(dr);
+
+                    td.show(fragmentManager,
+                            "boolean_dialog");
+                }
+            });
+
+            // Check which image to set
+            if (equipmentItem.getValue().equals("True")) {
+                image.setImageResource(R.drawable.green_check);
             } else {
-                return new View(context);
+                image.setImageResource(R.drawable.redx);
             }
 
-        } catch (Exception e) {
-            System.out.println("Caught an Exception");
+        } else {
             return new View(context);
         }
 
         return row;
-    }  // end getView
+    }
 
 }

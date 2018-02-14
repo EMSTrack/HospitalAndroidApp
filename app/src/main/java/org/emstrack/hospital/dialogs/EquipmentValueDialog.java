@@ -24,6 +24,7 @@ public class EquipmentValueDialog extends DialogFragment {
     private String message;
     private String updatedData = "";
     private String oldData = "";
+
     private DataListener dr;
 
     /**
@@ -64,7 +65,6 @@ public class EquipmentValueDialog extends DialogFragment {
         System.out.println("Title: " + title);
         System.out.println("Message: " + message);
         System.out.println("Data: " + oldData);
-
 
         final AlertDialog.Builder alertBuilder = new AlertDialog.Builder(getActivity());
         final EditText valueText = new EditText(getActivity().getApplicationContext());

@@ -59,9 +59,11 @@ public class HospitalEquipmentActivity extends AppCompatActivity {
         imageButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
                 // Create the logout dialog for the user
                 LogoutDialog ld = LogoutDialog.newInstance();
                 ld.show(getFragmentManager(), "logout_dialog");
+
             }
         });
 
